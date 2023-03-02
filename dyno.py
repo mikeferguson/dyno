@@ -98,13 +98,18 @@ if __name__ == "__main__":
 
     dyno = DynoBoardInterface()
 
-    print("Test update without commands")
+    print("Test update without commands\n")
     dyno.update()
 
-    print("Test update with commands")
+    print("Test update with commands\n")
     dyno.update(absorber_speed=1.0)
 
-    print("Test decoding")
+    print("Latest data")
+    for data in dyno.data_names:
+        print(data + ": " + str(dyno.get(data)))
+    print()
+
+    print("Test decoding\n")
     dyno.decode(b"DYN0000000000000000000000000000")
     dyno.decode(b"DYNX0000000000000000000000000000")
 
