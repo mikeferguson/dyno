@@ -73,7 +73,9 @@ class DynoBoardInterface:
         while True:
             try:
                 packet = self._conn.recv(1024)
-                self.data_last = self.decode(packet)
+                raw_data = list(self.decode(packet))
+                raw_data[4] *= -1.0 # Torque is backwards?
+                self.data_last = raw_data
                 return self.data_last
             except socket.error:
                 if time.time() - t > timeout:
@@ -85,9 +87,49 @@ class DynoBoardInterface:
         command = b"DYNOSTOP"
         self._conn.sendto(command, 0, (self._ip, self._port))
 
-    ## @brief
+    ## @brief Get latest value of a particular variable
     def get(self, variable):
         return self.data_last[self.data_names.index(variable)]
+
+
+## @brief Road Load Simulation
+class RoadLoad:
+
+    ## @brief Create a RoadLoad instance
+    ## @param dyno_interface An instance of DynoBoardInterface
+    def __init__(self, dyno_interface, j, c0, c1):
+        self.dyno = dyno_interface
+        self.j = j
+        self.c0 = c0
+        self.c1 = c1
+        self.velocity = 0.0
+
+    def getVelocityCommand(self, dt=0.01):
+        if abs(self.j) < 0.01:
+            # If j is not initialized, don't run updates
+            return 0
+
+        torque = self.dyno.get("torque")
+        velocity = self.velocity  #self.dyno.get("velocity")
+
+        # Deadband on torque
+        if abs(torque) < 0.1:
+            torque = 0.0
+
+        # Compute net torque
+        if velocity > 0:
+            net_torque = torque - self.c0 - self.c1 * velocity
+        else:
+            net_torque = torque + self.c0 - self.c1 * velocity
+
+        acceleration = net_torque / self.j
+        command = velocity + acceleration * dt
+
+        # Store computed velocity
+        self.velocity = command
+
+        print(torque, velocity, net_torque, acceleration, command)
+        return command
 
 
 if __name__ == "__main__":
