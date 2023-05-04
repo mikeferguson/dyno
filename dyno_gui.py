@@ -174,6 +174,7 @@ class DynoGUI:
         if self.do_capture:
             self.do_capture = False
             self.capture_button.setText("Start")
+            self.road_load.reset()
         else:
             self.do_capture = True
             self.capture_button.setText("Stop")
@@ -205,7 +206,8 @@ class DynoGUI:
             self.road_load.j = self.absorber_road_load_j.value()
             self.road_load.c0 = self.absorber_road_load_c0.value()
             self.road_load.c1 = self.absorber_road_load_c1.value()
-            self.absorber.set_radians_per_sec(self.road_load.getVelocityCommand())
+            #self.absorber.set_radians_per_sec(self.road_load.getVelocityCommand())
+            self.absorber.set_torque(self.road_load.getFrictionTorque())
         elif self.absorber_manual_speed.isChecked():
             self.absorber.set_radians_per_sec(int(self.absorber_desired_speed.value()))
 
