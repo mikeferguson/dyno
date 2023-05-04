@@ -122,6 +122,12 @@ class RoadLoad:
         else:
             net_torque = torque + self.c0 - self.c1 * velocity
 
+        # Friction can't reverse torque
+        if torque >= 0 and net_torque < 0:
+            net_torque = 0
+        elif torque < 0 and net_torque > 0:
+            net_torque = 0
+
         acceleration = net_torque / self.j
         command = velocity + acceleration * dt
 
@@ -130,6 +136,23 @@ class RoadLoad:
 
         print(torque, velocity, net_torque, acceleration, command)
         return command
+
+    def getFrictionTorque(self):
+        # Get command torque
+        torque = self.dyno.get("torque")
+        velocity = self.dyno.get("velocity")
+
+        print(velocity, self.c1, self.c0)
+
+        if torque > 0.2:
+            return -self.c0 - self.c1 * abs(velocity)
+        elif torque < -0.2:
+            return self.c0 + self.c1 * abs(velocity)
+        else:
+            return 0.0
+
+    def reset(self):
+        self.velocity = 0.0
 
 
 if __name__ == "__main__":
