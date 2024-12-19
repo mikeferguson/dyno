@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2019-2023 Michael Ferguson
+# Copyright 2019-2024 Michael Ferguson
 # All Rights Reserved
 
 # Dyno software
@@ -8,6 +8,12 @@
 import socket
 import struct
 import time
+
+def sign(x):
+    if x >= 0:
+        return 1
+    return -1
+
 
 ## @brief Interface to the Dyno Board
 class DynoBoardInterface:
@@ -73,7 +79,9 @@ class DynoBoardInterface:
         while True:
             try:
                 packet = self._conn.recv(1024)
-                self.data_last = self.decode(packet)
+                raw_data = list(self.decode(packet))
+                raw_data[4] *= -1.0 # Torque is backwards?
+                self.data_last = raw_data
                 return self.data_last
             except socket.error:
                 if time.time() - t > timeout:
@@ -85,15 +93,80 @@ class DynoBoardInterface:
         command = b"DYNOSTOP"
         self._conn.sendto(command, 0, (self._ip, self._port))
 
-    ## @brief
+    ## @brief Get latest value of a particular variable
     def get(self, variable):
         return self.data_last[self.data_names.index(variable)]
+
+
+## @brief Road Load Simulation
+##
+## Road load is basically modeled as:
+##
+##   Motor Torque = c0 + c1 * velocity + j * acceleration
+##
+## The acceleration is then applied to the absorber load,
+## which is in velocity-control mode.
+class RoadLoad:
+
+    ## @brief Create a RoadLoad simulation instance
+    ## @param dyno_interface An instance of DynoBoardInterface
+    ## @param j Inertia of the load
+    ## @param c0 Constant friction force loss
+    ## @param c1 Coefficient for velocity-based force loss
+    ## @param use_feedback If true, use velocity from dyno (this can
+    ##        lead to a noisy simulation)
+    def __init__(self, dyno_interface, j, c0, c1, use_feedback=False):
+        self.dyno = dyno_interface
+        self.j = j
+        self.c0 = c0
+        self.c1 = c1
+        self.velocity = 0.0
+        self.use_feedback = use_feedback
+        self.torque_deadband = 0.1
+
+    def getVelocityCommand(self, dt=0.01):
+        if abs(self.j) < 0.01:
+            # If j is not initialized, don't run updates
+            return 0
+
+        torque = self.dyno.get("torque")
+        velocity = self.dyno.get("velocity")
+        if not self.use_feedback:
+            # Open loop control can be less noisy, and is our default
+            velocity = self.velocity
+
+        # Deadband on torque
+        if abs(torque) < self.torque_deadband:
+            torque = 0.0
+
+        # Compute drag friction
+        drag_friction = self.c0 + self.c1 * abs(velocity)
+
+        # Compute net torque
+        if velocity >= 0:
+            net_torque = torque - drag_friction
+        else:
+            net_torque = torque + drag_friction
+
+        acceleration = net_torque / self.j
+        command = velocity + acceleration * dt
+
+        # Friction cannot reverse direction
+        if (velocity > 0 and command < 0) or (velocity < 0 and command > 0):
+            command = 0.0
+
+        # Store computed velocity
+        self.velocity = command
+        return command
+
+    def reset(self):
+        self.velocity = 0.0
 
 
 if __name__ == "__main__":
     print()
     print("Dyno Controller v0.1")
-    print("Copyright 2019-2023 Michael Ferguson")
+    print("Copyright 2019-2024 Michael Ferguson")
     print()
 
     dyno = DynoBoardInterface()
