@@ -3,7 +3,7 @@
 # Copyright 2019-2023 Michael Ferguson
 # All Rights Reserved
 
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
 import time
@@ -22,70 +22,70 @@ class DynoGUI:
         self.power = pg.PlotWidget(title="Power")
 
         # Status / Controls
-        self.status_label = QtGui.QLabel(text="<b>Measurements</b>")
+        self.status_label = QtWidgets.QLabel(text="<b>Measurements</b>")
         self.status_label.setAlignment(QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter)
         self.status_label.setMargin(10)
-        self.torque_value = QtGui.QLabel(text="0.0")
+        self.torque_value = QtWidgets.QLabel(text="0.0")
         self.torque_value.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.speed_value = QtGui.QLabel(text="0.0")
+        self.speed_value = QtWidgets.QLabel(text="0.0")
         self.speed_value.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.voltage_value = QtGui.QLabel(text="0.0")
+        self.voltage_value = QtWidgets.QLabel(text="0.0")
         self.voltage_value.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.current_value = QtGui.QLabel(text="0.0")
+        self.current_value = QtWidgets.QLabel(text="0.0")
         self.current_value.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
-        self.absorber_label = QtGui.QLabel(text="<b>Absorber Control</b>")
+        self.absorber_label = QtWidgets.QLabel(text="<b>Absorber Control</b>")
         self.absorber_label.setAlignment(QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter)
         self.absorber_label.setMargin(10)
-        self.absorber_disable = QtGui.QRadioButton("Disabled")
+        self.absorber_disable = QtWidgets.QRadioButton("Disabled")
         self.absorber_disable.setChecked(True)
         self.absorber_disable.toggled.connect(self.absorberDisable)
-        self.absorber_manual_speed = QtGui.QRadioButton("Speed Mode")
+        self.absorber_manual_speed = QtWidgets.QRadioButton("Speed Mode")
         self.absorber_manual_speed.toggled.connect(self.absorberSpeed)
-        self.absorber_speed = QtGui.QDoubleSpinBox()
+        self.absorber_speed = QtWidgets.QDoubleSpinBox()
         self.absorber_speed.setRange(0.0, 1000.0)
         self.absorber_speed.setSingleStep(0.5)
         self.absorber_speed.setEnabled(False)
 
-        self.buck_label = QtGui.QLabel(text="<b>Input Power Control</b>")
+        self.buck_label = QtWidgets.QLabel(text="<b>Input Power Control</b>")
         self.buck_label.setAlignment(QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter)
         self.buck_label.setMargin(10)
-        self.buck_voltage = QtGui.QDoubleSpinBox()
+        self.buck_voltage = QtWidgets.QDoubleSpinBox()
         self.buck_voltage.setRange(0.0, 48.0)
         self.buck_voltage.setSingleStep(1.0)
-        self.buck_current = QtGui.QDoubleSpinBox()
+        self.buck_current = QtWidgets.QDoubleSpinBox()
         self.buck_current.setRange(0.0, 5.0)
         self.buck_current.setSingleStep(0.25)
 
         self.do_capture = False
-        self.capture_button = QtGui.QPushButton("Start")
+        self.capture_button = QtWidgets.QPushButton("Start")
         self.capture_button.clicked.connect(self.triggerCapture)
-        self.clear_button = QtGui.QPushButton("Clear")
+        self.clear_button = QtWidgets.QPushButton("Clear")
         self.clear_button.clicked.connect(self.reset)
 
         # Layout
-        self.controls = QtGui.QWidget()
+        self.controls = QtWidgets.QWidget()
         self.controls.setFixedWidth(200)
-        self.controls_layout = QtGui.QVBoxLayout()
+        self.controls_layout = QtWidgets.QVBoxLayout()
         self.controls.setLayout(self.controls_layout)
 
         self.controls_layout.addWidget(self.status_label)
-        self.status_layout = QtGui.QGridLayout()
-        self.status_layout.addWidget(QtGui.QLabel(text="Torque (Nm)"), 0, 0)
+        self.status_layout = QtWidgets.QGridLayout()
+        self.status_layout.addWidget(QtWidgets.QLabel(text="Torque (Nm)"), 0, 0)
         self.status_layout.addWidget(self.torque_value, 0, 1)
-        self.status_layout.addWidget(QtGui.QLabel(text="Speed (rad/s)"), 1, 0)
+        self.status_layout.addWidget(QtWidgets.QLabel(text="Speed (rad/s)"), 1, 0)
         self.status_layout.addWidget(self.speed_value, 1, 1)
-        self.status_layout.addWidget(QtGui.QLabel(text="Input Voltage (V)"), 2, 0)
+        self.status_layout.addWidget(QtWidgets.QLabel(text="Input Voltage (V)"), 2, 0)
         self.status_layout.addWidget(self.voltage_value, 2, 1)
-        self.status_layout.addWidget(QtGui.QLabel(text="Input Current (A)"), 3, 0)
+        self.status_layout.addWidget(QtWidgets.QLabel(text="Input Current (A)"), 3, 0)
         self.status_layout.addWidget(self.current_value, 3, 1)
         self.controls_layout.addLayout(self.status_layout)
 
         self.controls_layout.addWidget(self.absorber_label)
         self.controls_layout.addWidget(self.absorber_disable)
         self.controls_layout.addWidget(self.absorber_manual_speed)
-        self.absorber_speed_layout = QtGui.QGridLayout()
-        self.absorber_speed_layout.addWidget(QtGui.QLabel("Speed (rad/s)"), 0, 0)
+        self.absorber_speed_layout = QtWidgets.QGridLayout()
+        self.absorber_speed_layout.addWidget(QtWidgets.QLabel("Speed (rad/s)"), 0, 0)
         self.absorber_speed_layout.addWidget(self.absorber_speed, 0, 1)
         self.controls_layout.addLayout(self.absorber_speed_layout)
 
@@ -93,8 +93,8 @@ class DynoGUI:
         self.controls_layout.addWidget(self.capture_button)
         self.controls_layout.addWidget(self.clear_button)
 
-        self.layout = QtGui.QGridLayout()
-        self.window = QtGui.QWidget()
+        self.layout = QtWidgets.QGridLayout()
+        self.window = QtWidgets.QWidget()
         self.window.setLayout(self.layout)
         self.layout.addWidget(self.controls, 0, 0, 3, 1)
         self.layout.addWidget(self.torque, 0, 1, 1, 2)
@@ -154,8 +154,6 @@ class DynoGUI:
         self.output_torque.append(data[4])
         # position = data[5]
         self.output_speed.append(data[6])
-        if data[6] != 0.0:
-            print(data[6])
         self.input_power.append(data[2] * data[3])
 
     ## @brief Refresh the view
@@ -178,10 +176,11 @@ class DynoGUI:
         self.torque.plot(times, torques, clear=True)
         self.speed.plot(times, speeds, clear=True)
         self.power.plot(times, mPowers, clear=True)
-        self.power.plot(times, ePowers, pen={"color": "FFFF00"})
+        color = QtGui.QColor(255, 255, 0)
+        self.power.plot(times, ePowers, pen=color)
 
 if __name__ == "__main__":
-    app = QtGui.QApplication([])
+    app = QtWidgets.QApplication([])
 
     gui = DynoGUI()
 
