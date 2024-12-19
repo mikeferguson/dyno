@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 
-# Copyright 2019-2023 Michael Ferguson
+# Copyright 2019-2024 Michael Ferguson
 # All Rights Reserved
+
+"""
+Dyno Interface
+"""
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
+import argparse
 import time
 from math import sin, cos
 
 from dyno import DynoBoardInterface, RoadLoad
-from load import LoadInterface
 
 class DynoGUI:
 
-    def __init__(self):
+    def __init__(self, load_interface=None):
         self.reset()
 
         # Plots
@@ -42,29 +46,22 @@ class DynoGUI:
         # Selection of absorber mode
         self.absorber_disable = QtWidgets.QRadioButton("Disabled")
         self.absorber_disable.setChecked(True)
-        self.absorber_disable.toggled.connect(self.selectAbsorberDisable)
         self.absorber_manual_speed = QtWidgets.QRadioButton("Speed Mode")
-        self.absorber_manual_speed.toggled.connect(self.selectAbsorberSpeed)
         self.absorber_road_load = QtWidgets.QRadioButton("Road Load Mode")
-        self.absorber_road_load.toggled.connect(self.selectAbsorberRoadLoad)
         # Absorber speed mode options
         self.absorber_desired_speed = QtWidgets.QDoubleSpinBox()
         self.absorber_desired_speed.setRange(0.0, 1000.0)
         self.absorber_desired_speed.setSingleStep(0.5)
-        self.absorber_desired_speed.setEnabled(False)
         # Absorber road load options
         self.absorber_road_load_j = QtWidgets.QDoubleSpinBox()
         self.absorber_road_load_j.setRange(0.0, 1000.0)
         self.absorber_road_load_j.setSingleStep(0.5)
-        self.absorber_road_load_j.setEnabled(False)
         self.absorber_road_load_c0 = QtWidgets.QDoubleSpinBox()
         self.absorber_road_load_c0.setRange(0.0, 1000.0)
         self.absorber_road_load_c0.setSingleStep(0.5)
-        self.absorber_road_load_c0.setEnabled(False)
         self.absorber_road_load_c1 = QtWidgets.QDoubleSpinBox()
         self.absorber_road_load_c1.setRange(0.0, 1000.0)
         self.absorber_road_load_c1.setSingleStep(0.5)
-        self.absorber_road_load_c1.setEnabled(False)
 
         self.buck_label = QtWidgets.QLabel(text="<b>Input Power Control</b>")
         self.buck_label.setAlignment(QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter)
@@ -134,7 +131,16 @@ class DynoGUI:
 
         self.dyno = DynoBoardInterface()
         self.road_load = RoadLoad(self.dyno, 0, 0, 0)
-        self.absorber = LoadInterface()
+        self.absorber = load_interface
+        if self.absorber is None:
+            print("No absorber load, disabling")
+            self.absorber_disable.setEnabled(False)
+            self.absorber_manual_speed.setEnabled(False)
+            self.absorber_desired_speed.setEnabled(False)
+            self.absorber_road_load.setEnabled(False)
+            self.absorber_road_load_j.setEnabled(False)
+            self.absorber_road_load_c0.setEnabled(False)
+            self.absorber_road_load_c1.setEnabled(False)
 
     ## @brief Reset data
     def reset(self):
@@ -147,27 +153,6 @@ class DynoGUI:
         self.output_speed = []
         self.absorber_speed = []
         self.start_time = time.time()
-
-    ## @brief Switch absorber modes
-    def selectAbsorberDisable(self):
-        self.absorber_desired_speed.setEnabled(False)
-        self.absorber_road_load_j.setEnabled(False)
-        self.absorber_road_load_c0.setEnabled(False)
-        self.absorber_road_load_c1.setEnabled(False)
-
-    ## @brief Switch absorber modes
-    def selectAbsorberSpeed(self):
-        self.absorber_desired_speed.setEnabled(True)
-        self.absorber_road_load_j.setEnabled(False)
-        self.absorber_road_load_c0.setEnabled(False)
-        self.absorber_road_load_c1.setEnabled(False)
-
-    ## @brief Switch absorber modes
-    def selectAbsorberRoadLoad(self):
-        self.absorber_desired_speed.setEnabled(False)
-        self.absorber_road_load_j.setEnabled(True)
-        self.absorber_road_load_c0.setEnabled(True)
-        self.absorber_road_load_c1.setEnabled(True)
 
     ## @brief Start/stop capture
     def triggerCapture(self):
@@ -206,8 +191,7 @@ class DynoGUI:
             self.road_load.j = self.absorber_road_load_j.value()
             self.road_load.c0 = self.absorber_road_load_c0.value()
             self.road_load.c1 = self.absorber_road_load_c1.value()
-            #self.absorber.set_radians_per_sec(self.road_load.getVelocityCommand())
-            self.absorber.set_torque(self.road_load.getFrictionTorque())
+            self.absorber.set_radians_per_sec(self.road_load.getVelocityCommand())
         elif self.absorber_manual_speed.isChecked():
             self.absorber.set_radians_per_sec(int(self.absorber_desired_speed.value()))
 
@@ -225,7 +209,6 @@ class DynoGUI:
         try:
             self.torque_value.setText("%.3f" % self.output_torque[-1])
             self.speed_value.setText("%.3f" % self.output_speed[-1])
-            # TODO absorber speed
             self.voltage_value.setText("%.3f" % self.input_voltage[-1])
             self.current_value.setText("%.3f" % self.input_current[-1])
         except IndexError:
@@ -234,16 +217,25 @@ class DynoGUI:
 
         self.torque.plot(times, torques, clear=True)
         self.speed.plot(times, speeds, clear=True)
+        yellow_pen = QtGui.QColor(255, 255, 0)
         if self.absorber_road_load.isChecked():
-            self.speed.plot(times, absorber_speeds, pen={"color": "FFFF00"})
+            self.speed.plot(times, absorber_speeds, pen=yellow_pen)
         self.power.plot(times, mPowers, clear=True)
-        color = QtGui.QColor(255, 255, 0)
-        self.power.plot(times, ePowers, pen=color)
+        self.power.plot(times, ePowers, pen=yellow_pen)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--vesc", help="Use VESC for absorber load interface", action="store_true")
+    args, unknown = parser.parse_known_args()
+
     app = QtWidgets.QApplication([])
 
-    gui = DynoGUI()
+    absorber = None
+    if args.vesc:
+        from load_vesc import LoadVescInterface
+        absorber = LoadVescInterface()
+
+    gui = DynoGUI(absorber)
 
     # Start sampling timer at 200hz
     sample = QtCore.QTimer()
