@@ -173,9 +173,9 @@ class DynoGUI:
     ## @brief Start/stop capture
     def triggerCapture(self):
         if self.do_capture:
-            self.start_capture()
-        else:
             self.stop_capture()
+        else:
+            self.start_capture()
 
     ## @brief Sample data from dyno
     def sample(self):
