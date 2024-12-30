@@ -18,7 +18,7 @@ from dyno import DynoBoardInterface, RoadLoad
 
 class DynoGUI:
 
-    def __init__(self, load_interface=None):
+    def __init__(self, load_interface=None, ros2_interface=None):
         self.reset()
 
         # Plots
@@ -142,6 +142,10 @@ class DynoGUI:
             self.absorber_road_load_c0.setEnabled(False)
             self.absorber_road_load_c1.setEnabled(False)
 
+        self.ros2 = ros2_interface
+        if self.ros2:
+            self.ros2.gui = self
+
     ## @brief Reset data
     def reset(self):
         self.start = 0.0
@@ -154,16 +158,24 @@ class DynoGUI:
         self.absorber_speed = []
         self.start_time = time.time()
 
+    ## @brief Start capture
+    def start_capture(self):
+        self.do_capture = True
+        self.capture_button.setText("Stop")
+        self.reset()
+
+    ## @brief Stop capture
+    def stop_capture(self):
+        self.do_capture = False
+        self.capture_button.setText("Start")
+        self.road_load.reset()
+
     ## @brief Start/stop capture
     def triggerCapture(self):
         if self.do_capture:
-            self.do_capture = False
-            self.capture_button.setText("Start")
-            self.road_load.reset()
+            self.start_capture()
         else:
-            self.do_capture = True
-            self.capture_button.setText("Stop")
-            self.reset()
+            self.stop_capture()
 
     ## @brief Sample data from dyno
     def sample(self):
@@ -177,7 +189,8 @@ class DynoGUI:
 
         if not self.time_stamps:
             self.start = data[0]
-        self.time_stamps.append((data[0] - self.start) / 25000.0)
+        stamp = (data[0] - self.start) / 25000.0
+        self.time_stamps.append(stamp)
         # system_voltage = data[1]
         self.input_voltage.append(data[2])
         self.input_current.append(data[3])
@@ -196,6 +209,8 @@ class DynoGUI:
             self.absorber.set_radians_per_sec(int(self.absorber_desired_speed.value()))
 
         self.absorber_speed.append(self.road_load.velocity)
+        if self.ros2:
+            self.ros2.publish(stamp, data[1], data[2], data[3], data[4], data[5], data[6] / 8)
 
     ## @brief Refresh the view
     def refresh(self):
@@ -226,6 +241,7 @@ class DynoGUI:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--vesc", help="Use VESC for absorber load interface", action="store_true")
+    parser.add_argument("--ros", help="Enable ROS 2 interface", action="store_true")
     args, unknown = parser.parse_known_args()
 
     app = QtWidgets.QApplication([])
@@ -235,7 +251,12 @@ if __name__ == "__main__":
         from load_vesc import LoadVescInterface
         absorber = LoadVescInterface()
 
-    gui = DynoGUI(absorber)
+    ros2_interface = None
+    if args.ros:
+        from ros import DynoROS2
+        ros2_interface = DynoROS2()
+
+    gui = DynoGUI(absorber, ros2_interface)
 
     # Start sampling timer at 200hz
     sample = QtCore.QTimer()
@@ -248,3 +269,6 @@ if __name__ == "__main__":
     plot.start(100)
 
     app.exec_()
+
+    if ros2_interface:
+        ros2_interface.shutdown()
