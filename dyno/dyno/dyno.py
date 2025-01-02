@@ -51,25 +51,28 @@ class DynoBoardInterface:
     ## @returns tuple of values, in same order as data_format
     def update(self, absorber_speed=None, buck_voltage=None,
                dut_485=None, dut_485_baud=None, dut_analog_out=None,
-               timeout=0.1):
+               command_addon = None, timeout=0.1):
         # This is the base command, it gets a return packet of values
         command = b"DYNO"
 
         # These are optional commands
         if absorber_speed != None:
-            command += b"S" + struct.pack("<f", absorber_speed)
+            command += self.getAbsorberCommand(absorber_speed)
 
         if buck_voltage != None:
-            command += b"V" + struct.pack("<f", buck_voltage)
+            command += self.getBuckCommand(buck_voltage)
 
         if dut_485 != None:
-            command += b"D4" + struct.pack("<B", len(dut_485)) + dut_485
+            command += self.get485Command(dut_485)
 
         if dut_485_baud != None:
             command += b"DB" + struct.pack("<H", dut_485_baud)
 
         if dut_analog_out != None:
-            command += b"DA" + struct.pack("<f", dut_analog_out)
+            command += self.getAnalogCommand(dut_analog_out)
+
+        if command_addon != None:
+            command += command_addon
 
         # Send the command(s)
         self._conn.sendto(command, 0, (self._ip, self._port))
@@ -96,6 +99,18 @@ class DynoBoardInterface:
     ## @brief Get latest value of a particular variable
     def get(self, variable):
         return self.data_last[self.data_names.index(variable)]
+
+    def getAbsorberCommand(self, absorber_speed):
+        return b"S" + struct.pack("<f", absorber_speed)
+
+    def getBuckCommand(self, buck_voltage):
+        return b"V" + struct.pack("<f", buck_voltage)
+
+    def get485Command(self, dut_485):
+        return b"D4" + struct.pack("<B", len(dut_485)) + dut_485
+
+    def getAnalogCommand(self, dut_analog_out):
+        return b"DA" + struct.pack("<f", dut_analog_out)
 
 
 ## @brief Road Load Simulation
