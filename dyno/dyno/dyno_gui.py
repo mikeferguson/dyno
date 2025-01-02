@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2019-2024 Michael Ferguson
+# Copyright 2019-2025 Michael Ferguson
 # All Rights Reserved
 
 """
@@ -16,15 +16,22 @@ from math import sin, cos
 
 from dyno import DynoBoardInterface, RoadLoad
 
+
 class DynoGUI:
+
+    # How fast to get updates from Dyno
+    UPDATE_FREQUENCY = 200
 
     def __init__(self, load_interface=None, ros2_interface=None):
         self.reset()
 
         # Plots
         self.torque = pg.PlotWidget(title="Torque")
+        self.torque.setMouseEnabled(x=False, y=False)
         self.speed = pg.PlotWidget(title="Speed")
+        self.speed.setMouseEnabled(x=False, y=False)
         self.power = pg.PlotWidget(title="Power")
+        self.power.setMouseEnabled(x=False, y=False)
 
         # Status / Controls
         self.status_label = QtWidgets.QLabel(text="<b>Measurements</b>")
@@ -214,11 +221,13 @@ class DynoGUI:
 
     ## @brief Refresh the view
     def refresh(self):
-        times = self.time_stamps[-1000:-1]
-        torques = self.output_torque[-1000:-1]
-        speeds = self.output_speed[-1000:-1]
-        absorber_speeds = self.absorber_speed[-1000:-1]
-        ePowers = self.input_power[-1000:-1]
+        # Display 10 seconds worth of data
+        depth = 10 * self.UPDATE_FREQUENCY
+        times = self.time_stamps[-depth:-1]
+        torques = self.output_torque[-depth:-1]
+        speeds = self.output_speed[-depth:-1]
+        absorber_speeds = self.absorber_speed[-depth:-1]
+        ePowers = self.input_power[-depth:-1]
         mPowers = [t*s for t, s in zip(torques, speeds)]
 
         try:
@@ -258,10 +267,10 @@ if __name__ == "__main__":
 
     gui = DynoGUI(absorber, ros2_interface)
 
-    # Start sampling timer at 200hz
+    # Start sampling timer
     sample = QtCore.QTimer()
     sample.timeout.connect(gui.sample)
-    sample.start(5)
+    sample.start(int(1000 / gui.UPDATE_FREQUENCY))
 
     # Start refresh timer at 10hz
     plot = QtCore.QTimer()
