@@ -196,7 +196,7 @@ class DynoGUI:
         self.input_current.append(data[3])
         self.output_torque.append(data[4])
         # position = data[5]
-        self.output_speed.append(data[6] / 8)  # TODO: update firmware after changing encoder
+        self.output_speed.append(data[6])
         self.input_power.append(data[2] * data[3])
 
         # Do absorber control
@@ -210,7 +210,7 @@ class DynoGUI:
 
         self.absorber_speed.append(self.road_load.velocity)
         if self.ros2:
-            self.ros2.publish(stamp, data[1], data[2], data[3], data[4], data[5], data[6] / 8)
+            self.ros2.publish(stamp, data[1], data[2], data[3], data[4], data[5], data[6])
 
     ## @brief Refresh the view
     def refresh(self):
