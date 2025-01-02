@@ -10,9 +10,9 @@ the dyno via the ROS interface.
 """
 class DynoInterface:
 
-	def __init__(self, name='dyno_test_harness'):
-		rclpy.init()
-		self.node = rclpy.create_node(name)
+    def __init__(self, name='dyno_test_harness'):
+        rclpy.init()
+        self.node = rclpy.create_node(name)
 
         # Subscribe to dyno data
         self.latest_data = Sample()
