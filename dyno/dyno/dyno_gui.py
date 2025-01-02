@@ -25,6 +25,10 @@ class DynoGUI:
     def __init__(self, load_interface=None, ros2_interface=None):
         self.reset()
 
+        # Calibrated offsets
+        self.offset_torque = 0.0
+        self.offset_current = 0.0
+
         # Plots
         self.torque = pg.PlotWidget(title="Torque")
         self.torque.setMouseEnabled(x=False, y=False)
@@ -85,6 +89,9 @@ class DynoGUI:
         self.capture_button.clicked.connect(self.triggerCapture)
         self.clear_button = QtWidgets.QPushButton("Clear")
         self.clear_button.clicked.connect(self.reset)
+        self.zero_button = QtWidgets.QPushButton("Zero")
+        self.zero_button.clicked.connect(self.zero)
+        self.zero_button.setEnabled(False)
 
         # Layout
         self.controls = QtWidgets.QWidget()
@@ -124,6 +131,7 @@ class DynoGUI:
         self.controls_layout.addStretch()
         self.controls_layout.addWidget(self.capture_button)
         self.controls_layout.addWidget(self.clear_button)
+        self.controls_layout.addWidget(self.zero_button)
 
         self.layout = QtWidgets.QGridLayout()
         self.window = QtWidgets.QWidget()
@@ -165,16 +173,32 @@ class DynoGUI:
         self.absorber_speed = []
         self.start_time = time.time()
 
+    ## @brief Zero the offsets
+    def zero(self):
+        if len(self.input_current) <= 100:
+            print("Cannot calibrate zeros - not enough data")
+            return
+
+        currents = self.input_current[-100:-1]
+        offset = sum(currents) / len(currents)
+        self.offset_current -= offset
+
+        torques = self.output_torque[-100:-1]
+        offset = sum(torques) / len(torques)
+        self.offset_torque -= offset
+
     ## @brief Start capture
     def start_capture(self):
         self.do_capture = True
         self.capture_button.setText("Stop")
+        self.zero_button.setEnabled(True)
         self.reset()
 
     ## @brief Stop capture
     def stop_capture(self):
         self.do_capture = False
         self.capture_button.setText("Start")
+        self.zero_button.setEnabled(False)
         self.road_load.reset()
 
     ## @brief Start/stop capture
@@ -198,13 +222,19 @@ class DynoGUI:
             self.start = data[0]
         stamp = (data[0] - self.start) / 25000.0
         self.time_stamps.append(stamp)
+
+        # Convert to named values
         # system_voltage = data[1]
-        self.input_voltage.append(data[2])
-        self.input_current.append(data[3])
-        self.output_torque.append(data[4])
-        # position = data[5]
-        self.output_speed.append(data[6])
-        self.input_power.append(data[2] * data[3])
+        voltage = data[2]
+        current = data[3] + self.offset_current
+        torque = data[4] + self.offset_torque
+        position = data[5]
+        speed = data[6]
+        self.input_voltage.append(voltage)
+        self.input_current.append(current)
+        self.output_torque.append(torque)
+        self.output_speed.append(speed)
+        self.input_power.append(voltage * current)
 
         # Do absorber control
         if self.absorber_road_load.isChecked():
@@ -217,7 +247,7 @@ class DynoGUI:
 
         self.absorber_speed.append(self.road_load.velocity)
         if self.ros2:
-            self.ros2.publish(stamp, data[1], data[2], data[3], data[4], data[5], data[6])
+            self.ros2.publish(stamp, data[1], voltage, current, torque, position, speed)
 
     ## @brief Refresh the view
     def refresh(self):
