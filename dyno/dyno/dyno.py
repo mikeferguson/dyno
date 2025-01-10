@@ -14,6 +14,18 @@ def sign(x):
         return 1
     return -1
 
+def getAbsorberCommand(absorber_speed):
+    return b"S" + struct.pack("<f", absorber_speed)
+
+def getBuckCommand(buck_voltage):
+    return b"V" + struct.pack("<f", buck_voltage)
+
+def get485Command(dut_485):
+    return b"D4" + struct.pack("<B", len(dut_485)) + dut_485
+
+def getAnalogCommand(dut_analog_out):
+    return b"DA" + struct.pack("<f", dut_analog_out)
+
 
 ## @brief Interface to the Dyno Board
 class DynoBoardInterface:
@@ -57,19 +69,19 @@ class DynoBoardInterface:
 
         # These are optional commands
         if absorber_speed != None:
-            command += self.getAbsorberCommand(absorber_speed)
+            command += getAbsorberCommand(absorber_speed)
 
         if buck_voltage != None:
-            command += self.getBuckCommand(buck_voltage)
+            command += getBuckCommand(buck_voltage)
 
         if dut_485 != None:
-            command += self.get485Command(dut_485)
+            command += get485Command(dut_485)
 
         if dut_485_baud != None:
             command += b"DB" + struct.pack("<H", dut_485_baud)
 
         if dut_analog_out != None:
-            command += self.getAnalogCommand(dut_analog_out)
+            command += getAnalogCommand(dut_analog_out)
 
         if command_addon != None:
             command += command_addon
@@ -99,18 +111,6 @@ class DynoBoardInterface:
     ## @brief Get latest value of a particular variable
     def get(self, variable):
         return self.data_last[self.data_names.index(variable)]
-
-    def getAbsorberCommand(self, absorber_speed):
-        return b"S" + struct.pack("<f", absorber_speed)
-
-    def getBuckCommand(self, buck_voltage):
-        return b"V" + struct.pack("<f", buck_voltage)
-
-    def get485Command(self, dut_485):
-        return b"D4" + struct.pack("<B", len(dut_485)) + dut_485
-
-    def getAnalogCommand(self, dut_analog_out):
-        return b"DA" + struct.pack("<f", dut_analog_out)
 
 
 ## @brief Road Load Simulation
