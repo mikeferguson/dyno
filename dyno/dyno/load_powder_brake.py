@@ -6,16 +6,17 @@ from dyno import getAnalogCommand
 # Powder brake uses the analog DUT interface
 class LoadPowderBrake:
 
-    # Volts per Nm - 10v = 50Nm
-    # TODO: we need an isolated opamp to boost the 5v output to 10v, then rescale this
-    scale = 10 / 50.0
-
     def __init__(self):
         self.voltage = 0.0
 
     def set_torque(self, torque):
         # Convert torque to voltage
-        self.voltage = torque * self.scale
+        if torque < 0.01:
+            self.voltage = 0
+        elif torque < 0.4:
+            self.voltage = 0.75 * torque
+        else:
+            self.voltage = 0.259 + (0.161 * torque) - (0.0106 * torque * torque)
 
     def get_command(self):
         return getAnalogCommand(self.voltage)

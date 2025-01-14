@@ -57,6 +57,7 @@ class DynoGUI:
         # Selection of absorber mode
         self.absorber_disable = QtWidgets.QRadioButton("Disabled")
         self.absorber_disable.setChecked(True)
+        self.absorber_disable.toggled.connect(self.absorber_disable_callback)
         self.absorber_manual_torque = QtWidgets.QRadioButton("Torque Mode")
         # Absorber speed mode options
         self.absorber_desired_torque = QtWidgets.QDoubleSpinBox()
@@ -145,7 +146,6 @@ class DynoGUI:
         self.input_power = []
         self.output_torque = []
         self.output_speed = []
-        self.absorber_speed = []
         self.start_time = time.time()
 
     ## @brief Zero the offsets
@@ -174,7 +174,6 @@ class DynoGUI:
         self.do_capture = False
         self.capture_button.setText("Start")
         self.zero_button.setEnabled(False)
-        self.road_load.reset()
 
     ## @brief Start/stop capture
     def triggerCapture(self):
@@ -182,6 +181,13 @@ class DynoGUI:
             self.stop_capture()
         else:
             self.start_capture()
+
+    ## @brief Send disable command
+    def absorber_disable_callback(self):
+        if self.absorber_disable.isChecked():
+            self.absorber.set_torque(0.0)
+            command = self.absorber.get_command()
+            self.dyno.update(command_addon=command)
 
     ## @brief Sample data from dyno
     def sample(self):
