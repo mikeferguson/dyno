@@ -15,8 +15,10 @@ class LoadPowderBrake:
             self.voltage = 0
         elif torque < 0.4:
             self.voltage = 0.75 * torque
-        else:
+        elif torque < 5.0:
             self.voltage = 0.259 + (0.161 * torque) - (0.0106 * torque * torque)
+        else:
+            self.voltage = 0.32 + (0.102 * torque) - (0.00125 * torque * torque)
 
     def get_command(self):
         return getAnalogCommand(self.voltage)
