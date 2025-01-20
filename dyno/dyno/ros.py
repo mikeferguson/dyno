@@ -5,7 +5,7 @@
 
 import rclpy
 import threading
-from dyno_msgs.msg import Sample
+from dyno_msgs.msg import LoadSettings, Sample
 from dyno_msgs.srv import Trigger
 
 
@@ -17,6 +17,7 @@ class DynoROS2:
         rclpy.init()
         self.node = rclpy.create_node('dyno')
         self.sample_publisher = self.node.create_publisher(Sample, 'dyno/sample', 10)
+        self.load_settings_subscriber = self.node.create_subscription(LoadSettings, 'dyno/load_settings', self.load_settings_callback, 10)
         self.trigger_service = self.node.create_service(Trigger, 'dyno/trigger', self.trigger_callback)
 
         # Start thread
@@ -55,3 +56,8 @@ class DynoROS2:
         else:
             response.enabled = False
         return response
+
+    def load_settings_callback(self, msg):
+        if self.gui:
+            self.gui.absorber_desired_torque.setValue(msg.torque)
+            self.gui.absorber_manual_torque.setChecked(True)
