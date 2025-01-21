@@ -25,8 +25,8 @@ class EfficiencyMap:
         self.power_limit = None
         self.clear()
         if self.logfile:
-            self.logfile.write('v: %f %f %f', vel_min, vel_max, vel_step)
-            self.logfile.write('t: %f %f %f', torque_min, torque_max, torque_step)
+            self.logfile.write('v: %f, %f, %f\n' % (vel_min, vel_max, vel_step))
+            self.logfile.write('t: %f, %f, %f\n' % (torque_min, torque_max, torque_step))
 
     def clear(self):
         # Clear out all the efficiency measurements
@@ -41,7 +41,7 @@ class EfficiencyMap:
         efficiency = output_power / input_power
         self.add_efficiency_sample(torque, velocity, efficiency)
         if self.logfile:
-            self.logfile.write("d: %f, %f, %f" % (torque, velocity, efficiency))
+            self.logfile.write("d: %f, %f, %f\n" % (torque, velocity, efficiency))
 
     def add_efficiency_sample(self, torque, velocity, efficiency):
         # Figure out best index
