@@ -115,6 +115,10 @@ class EfficiencyMap:
                         pass
                     if not np.isnan(self.efficiency[t_idx][v_idx]):
                         continue
+                    try:
+                        self.efficiency[t_idx][v_idx] = self.efficiency[t_idx + 2][v_idx]
+                    except IndexError:
+                        pass
 
 
 if __name__ == '__main__':
@@ -123,5 +127,5 @@ if __name__ == '__main__':
     e.interpolate()
     title = 'Motor Efficiency'
     if len(sys.argv) > 2:
-        title += 'for ' + sys.argv[2]
+        title += ' for ' + sys.argv[2]
     e.plot(title)
