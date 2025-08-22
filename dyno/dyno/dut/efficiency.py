@@ -70,14 +70,14 @@ class EfficiencyMap:
         self.interface.set_load_torque(0.0)
         self.interface.shutdown()
 
-    def plot(self, title=None):
+    def plot(self, title=None, levels=None):
         title = title or 'Motor Efficiency'
 
         fig, ax = plt.subplots()
         fig.suptitle(title)
         X, Y = np.meshgrid(self.velocity, self.torque)
         cmap = plt.cm.plasma
-        img = ax.contourf(X, Y, self.efficiency, cmap=cmap)
+        img = ax.contourf(X, Y, self.efficiency, levels=levels, cmap=cmap)
         ax.set_ylabel('Torque (Nm)')
         ax.set_xlabel('Velocity (rad/s)')
         cbar = fig.colorbar(img, ax=ax, extend='both')
@@ -128,4 +128,4 @@ if __name__ == '__main__':
     title = 'Motor Efficiency'
     if len(sys.argv) > 2:
         title += ' for ' + sys.argv[2]
-    e.plot(title)
+    e.plot(title, [0.1 * i for i in range(11)])
