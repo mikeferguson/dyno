@@ -192,6 +192,10 @@ class DynoGUI:
     ## @brief Sample data from dyno
     def sample(self):
         if not self.do_capture:
+            if self.absorber_manual_torque.isChecked() and self.absorber.get_torque() > 0.0:
+                self.absorber.set_torque(0.0)
+                command = self.absorber.get_command()
+                self.dyno.update(command_addon=command)
             return
 
         command = None
@@ -276,6 +280,10 @@ if __name__ == "__main__":
     plot.start(100)
 
     app.exec_()
+
+    if absorber:
+        absorber.set_torque(0.0)
+        gui.dyno.update(command_addon=absorber.get_command())
 
     if ros2_interface:
         ros2_interface.shutdown()
