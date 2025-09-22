@@ -1,5 +1,7 @@
+#!/usr/bin/env python3
+
+import argparse
 import time
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -83,23 +85,23 @@ class EfficiencyMap:
         cbar = fig.colorbar(img, ax=ax, extend='both')
         plt.show()
 
-    def load_from_file(self, filename):
+    def load_from_file(self, filename, gearing=1):
         with open(filename, 'r') as file:
             for line in file:
                 if line[0] == '#':
                     # Ignore comments
                     continue
                 elif line[0:2] == 'v:':
-                    vel_min, vel_max, vel_step = [float(d) for d in line[2:].split(',')]
+                    vel_min, vel_max, vel_step = [float(d) / gearing for d in line[2:].split(',')]
                     self.velocity = np.arange(vel_min, vel_max + vel_step, vel_step)
                 elif line[0:2] == 't:':
-                    torque_min, torque_max, torque_step = [float(d) for d in line[2:].split(',')]
+                    torque_min, torque_max, torque_step = [float(d) * gearing for d in line[2:].split(',')]
                     self.torque = np.arange(torque_min, torque_max + torque_step, torque_step).reshape(-1, 1)
                     self.efficiency = (self.velocity * self.torque)
                     self.clear()
                 elif line[0:2] == 'd:':
                     torque, velocity, efficiency = [float(d) for d in line[2:].split(',')]
-                    self.add_efficiency_sample(torque, velocity, efficiency)
+                    self.add_efficiency_sample(torque * gearing, velocity / gearing, efficiency)
 
     def interpolate(self):
         for t_idx, t in enumerate(self.torque):
@@ -125,10 +127,16 @@ class EfficiencyMap:
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Plot efficiency data.')
+    parser.add_argument('file', type=str, help='Log file to read.')
+    parser.add_argument('--gearing', type=int, default=1, help='Gearing to apply to saved data.')
+    parser.add_argument('--motor', type=str, help='Motor name for plot.')
+    args = parser.parse_args()
+
     e = EfficiencyMap()
-    e.load_from_file(sys.argv[1])
+    e.load_from_file(args.file, args.gearing)
     e.interpolate()
     title = 'Motor Efficiency'
-    if len(sys.argv) > 2:
-        title += ' for ' + sys.argv[2]
+    if args.motor:
+        title += ' for ' + args.motor
     e.plot(title, [0.1 * i for i in range(11)])
