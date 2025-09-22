@@ -86,7 +86,10 @@ class EfficiencyMap:
     def load_from_file(self, filename):
         with open(filename, 'r') as file:
             for line in file:
-                if line[0:2] == 'v:':
+                if line[0] == '#':
+                    # Ignore comments
+                    continue
+                elif line[0:2] == 'v:':
                     vel_min, vel_max, vel_step = [float(d) for d in line[2:].split(',')]
                     self.velocity = np.arange(vel_min, vel_max + vel_step, vel_step)
                 elif line[0:2] == 't:':
