@@ -22,7 +22,7 @@ class DynoGUI:
     # How fast to get updates from Dyno
     UPDATE_FREQUENCY = 200
 
-    def __init__(self, load_interface=None, ros2_interface=None):
+    def __init__(self, load_interface=None, ros2_interface=None, efficiency=False):
         self.reset()
 
         # Calibrated offsets
@@ -36,6 +36,11 @@ class DynoGUI:
         self.speed.setMouseEnabled(x=False, y=False)
         self.power = pg.PlotWidget(title="Power")
         self.power.setMouseEnabled(x=False, y=False)
+        if efficiency:
+            self.efficiency = pg.PlotWidget(title="Efficiency")
+            self.efficiency.setMouseEnabled(x=False, y=False)
+        else:
+            self.efficiency = None
 
         # Status / Controls
         self.status_label = QtWidgets.QLabel(text="<b>Measurements</b>")
@@ -49,6 +54,8 @@ class DynoGUI:
         self.voltage_value.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.current_value = QtWidgets.QLabel(text="0.0")
         self.current_value.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.efficiency_value = QtWidgets.QLabel(text="0.0")
+        self.efficiency_value.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
         # Absorber controls
         self.absorber_label = QtWidgets.QLabel(text="<b>Absorber Control</b>")
@@ -99,6 +106,8 @@ class DynoGUI:
         self.status_layout.addWidget(self.voltage_value, 2, 1)
         self.status_layout.addWidget(QtWidgets.QLabel(text="Input Current (A)"), 3, 0)
         self.status_layout.addWidget(self.current_value, 3, 1)
+        self.status_layout.addWidget(QtWidgets.QLabel(text="Efficiency (%)"), 4, 0)
+        self.status_layout.addWidget(self.efficiency_value, 4, 1)
         self.controls_layout.addLayout(self.status_layout)
 
         self.controls_layout.addWidget(self.absorber_label)
@@ -117,7 +126,11 @@ class DynoGUI:
         self.layout = QtWidgets.QGridLayout()
         self.window = QtWidgets.QWidget()
         self.window.setLayout(self.layout)
-        self.layout.addWidget(self.controls, 0, 0, 3, 1)
+        if efficiency:
+            self.layout.addWidget(self.controls, 0, 0, 4, 1)
+            self.layout.addWidget(self.efficiency, 3, 1, 1, 2)
+        else:
+            self.layout.addWidget(self.controls, 0, 0, 3, 1)
         self.layout.addWidget(self.torque, 0, 1, 1, 2)
         self.layout.addWidget(self.speed, 1, 1, 1, 2)
         self.layout.addWidget(self.power, 2, 1, 1, 2)
@@ -238,12 +251,14 @@ class DynoGUI:
         speeds = self.output_speed[-depth:-1]
         ePowers = self.input_power[-depth:-1]
         mPowers = [t*s for t, s in zip(torques, speeds)]
+        efficiency = [max(0, min(1.0, m/e)) for e, m in zip(ePowers, mPowers)]
 
         try:
             self.torque_value.setText("%.3f" % self.output_torque[-1])
             self.speed_value.setText("%.3f" % self.output_speed[-1])
             self.voltage_value.setText("%.3f" % self.input_voltage[-1])
             self.current_value.setText("%.3f" % self.input_current[-1])
+            self.efficiency_value.setText("%.3f" % efficiency[-1])
         except IndexError:
             # No data yet to show
             pass
@@ -253,10 +268,13 @@ class DynoGUI:
         self.power.plot(times, mPowers, clear=True)
         yellow_pen = QtGui.QColor(255, 255, 0)
         self.power.plot(times, ePowers, pen=yellow_pen)
+        if self.efficiency:
+            self.efficiency.plot(times, efficiency, clear=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ros", help="Enable ROS 2 interface", action="store_true")
+    parser.add_argument("--eff", help="Plot efficiency graph", action="store_true")
     args, unknown = parser.parse_known_args()
 
     app = QtWidgets.QApplication([])
@@ -267,7 +285,7 @@ if __name__ == "__main__":
         from ros import DynoROS2
         ros2_interface = DynoROS2()
 
-    gui = DynoGUI(absorber, ros2_interface)
+    gui = DynoGUI(absorber, ros2_interface, args.eff)
 
     # Start sampling timer
     sample = QtCore.QTimer()
